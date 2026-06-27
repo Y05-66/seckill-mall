@@ -115,21 +115,19 @@ seckill-mall/
   ↓
 ② 全局限流（Guava RateLimiter 500 QPS）
   ↓
-③ 用户级限流（Redis INCR+EXPIRE，5次/秒/用户）
+③ Caffeine本地缓存（5-30秒）
   ↓
-④ Caffeine本地缓存（5-30秒）
+④ Redis售罄检查（GOODS_OVER标记）
   ↓
-⑤ Redis售罄检查（GOODS_OVER标记）
+⑤ Redis重复购买检查（SECKILL_USER标记）
   ↓
-⑥ Redis重复购买检查（SECKILL_USER标记）
+⑥ Redis原子DECR预扣库存（负数时回滚）
   ↓
-⑦ Redis原子DECR预扣库存
+⑦ RabbitMQ异步下单（重试3次 + DLX死信队列）
   ↓
-⑧ RabbitMQ异步下单（重试3次 + DLX死信队列）
+⑧ DB乐观锁扣库存
   ↓
-⑨ DB乐观锁扣库存
-  ↓
-⑩ 前端轮询结果
+⑨ 前端轮询结果
 ```
 
 ### MQ重试机制
@@ -151,6 +149,23 @@ seckill-mall/
 - 自动取消超过15分钟未支付的订单
 - 回滚数据库库存 + Redis库存
 - 删除秒杀成功记录
+
+### AI购物助手
+
+- 基于阿里云百练平台（通义千问大模型）
+- 支持三种模型切换：qwen-turbo（极速）、qwen-plus（增强）、qwen-max（旗舰）
+- 多会话管理，消息持久化到数据库
+- 支持复制消息、重新生成回复
+- 服务不可用时自动降级为关键词匹配回复
+- PC端：浮动聊天窗口，支持Markdown渲染
+- 小程序端：独立全屏页面，原生滚动
+
+### 用户认证与安全
+
+- JWT无状态认证，Token有效期24小时
+- 服务端登出：Redis Token黑名单，即时失效
+- 密码重置：忘记密码时通过用户名重置
+- 统一设置页：个人信息、密码修改、账号信息
 
 ---
 
@@ -176,6 +191,8 @@ seckill-mall/
 | `t_notification` | 消息通知 |
 | `t_banner` | 轮播图 |
 | `t_operation_log` | 操作日志 |
+| `t_ai_conversation` | AI会话 |
+| `t_ai_message` | AI消息（持久化） |
 
 ### 订单状态流转
 
@@ -219,9 +236,11 @@ seckill-mall/
 |------|------|------|------|
 | POST | `/user/register` | 注册 | ❌ |
 | POST | `/user/login` | 登录 | ❌ |
+| POST | `/user/logout` | 退出登录（Token加入黑名单） | ✅ |
 | GET | `/user/info` | 获取用户信息 | ✅ |
 | PUT | `/user/info` | 修改个人信息 | ✅ |
 | PUT | `/user/password` | 修改密码 | ✅ |
+| POST | `/user/reset-password` | 重置密码（忘记密码） | ❌ |
 | POST | `/user/avatar` | 上传头像 | ✅ |
 
 ### 商品模块 `/goods`
@@ -248,6 +267,7 @@ seckill-mall/
 | GET | `/order/{orderNo}` | 订单详情 | ✅ |
 | POST | `/order/pay/{orderNo}` | 模拟支付 | ✅ |
 | POST | `/order/cancel/{orderNo}` | 取消订单 | ✅ |
+| DELETE | `/order/{orderNo}` | 删除订单（已取消/超时/退款） | ✅ |
 
 ### 购物车 `/cart`
 
@@ -272,6 +292,23 @@ seckill-mall/
 | GET | `/admin/user/list` | 用户管理 |
 | PUT | `/admin/user/{id}/role` | 修改角色 |
 | PUT | `/admin/user/{id}/status` | 启用/禁用 |
+
+### AI助手模块 `/ai`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/ai/chat` | 发送消息 | ❌ |
+| GET | `/ai/models` | 获取可用模型列表 | ❌ |
+| POST | `/ai/conversation` | 创建新会话 | ✅ |
+| GET | `/ai/conversations` | 获取会话列表 | ✅ |
+| DELETE | `/ai/conversation/{id}` | 删除会话 | ✅ |
+| GET | `/ai/history` | 获取会话历史 | ✅ |
+
+### 验证码 `/captcha`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| GET | `/captcha` | 获取验证码（Base64图片+captchaId） | ❌ |
 
 ---
 
