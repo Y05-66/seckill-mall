@@ -51,7 +51,7 @@ echo       小程序 API: http://%LOCAL_IP%:8080
 
 :: ==================== 检查端口 ====================
 echo.
-echo [3/5] 检查端口...
+echo [3/6] 检查端口...
 netstat -ano | findstr ":8080.*LISTEN" >nul 2>&1
 if not errorlevel 1 (
     echo       [错误] 端口 8080 已被占用，请先运行 stop.bat
@@ -64,11 +64,17 @@ if not errorlevel 1 (
     pause
     exit /b 1
 )
+netstat -ano | findstr ":5173.*LISTEN" >nul 2>&1
+if not errorlevel 1 (
+    echo       [错误] 端口 5173 已被占用，请先运行 stop.bat
+    pause
+    exit /b 1
+)
 echo       端口检查通过
 
 :: ==================== 启动后端 ====================
 echo.
-echo [4/5] 启动后端...
+echo [4/6] 启动后端...
 cd /d "%ROOT_DIR%"
 
 :: 检查 jar 文件是否存在
@@ -93,7 +99,7 @@ echo       后端已启动
 
 :: ==================== 启动前端 ====================
 echo.
-echo [5/5] 启动前端...
+echo [5/6] 启动前端...
 cd /d "%ROOT_DIR%seckill-frontend"
 
 :: 使用 start 命令启动前端（后台运行）
@@ -108,6 +114,23 @@ netstat -ano | findstr ":3000.*LISTEN" >nul 2>&1
 if errorlevel 1 goto wait_frontend
 echo       前端已启动
 
+:: ==================== 启动小程序 ====================
+echo.
+echo [6/6] 启动小程序...
+cd /d "%ROOT_DIR%seckill-miniapp"
+
+:: 使用 start 命令启动小程序H5开发服务器（后台运行）
+echo       正在启动小程序服务 (端口 5173)...
+start "秒杀商城-小程序" /min cmd /c "cd /d "%ROOT_DIR%seckill-miniapp" && npm run dev:h5"
+
+:: 等待小程序启动
+echo       等待小程序启动...
+:wait_miniapp
+timeout /t 2 /nobreak >nul
+netstat -ano | findstr ":5173.*LISTEN" >nul 2>&1
+if errorlevel 1 goto wait_miniapp
+echo       小程序已启动
+
 :: ==================== 完成 ====================
 echo.
 echo ========================================
@@ -116,11 +139,13 @@ echo ========================================
 echo.
 echo   访问地址:
 echo   - PC 前端:    http://localhost:3000
+echo   - 小程序 H5:  http://localhost:5173
 echo   - 后端 API:   http://localhost:8080
 echo   - Swagger:    http://localhost:8080/swagger-ui.html
 echo.
 echo   小程序配置:
 echo   - API 地址:   http://%LOCAL_IP%:8080
+echo   - 微信开发者工具请打开 dist/dev/mp-weixin 目录
 echo.
 echo   测试账号:
 echo   - 管理员:     admin / admin123

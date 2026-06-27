@@ -59,9 +59,10 @@ Write-Host "  小程序 API: http://${LOCAL_IP}:8080" -ForegroundColor Green
 
 # 检查端口
 Write-Host ""
-Write-Host "[3/5] 检查端口..." -ForegroundColor Yellow
+Write-Host "[3/6] 检查端口..." -ForegroundColor Yellow
 $backendPort = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue
 $frontendPort = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
+$miniappPort = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
 
 if ($backendPort) {
     Write-Host "  [错误] 端口 8080 已被占用" -ForegroundColor Red
@@ -73,11 +74,16 @@ if ($frontendPort) {
     Read-Host "按回车键退出"
     exit 1
 }
+if ($miniappPort) {
+    Write-Host "  [错误] 端口 5173 已被占用" -ForegroundColor Red
+    Read-Host "按回车键退出"
+    exit 1
+}
 Write-Host "  端口检查通过" -ForegroundColor Green
 
 # 启动后端
 Write-Host ""
-Write-Host "[4/5] 启动后端..." -ForegroundColor Yellow
+Write-Host "[4/6] 启动后端..." -ForegroundColor Yellow
 $backendCmd = "cd /d `"$ROOT_DIR`" ; java -jar target\seckill-mall-1.0.0.jar"
 Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $backendCmd -WindowStyle Hidden
 Write-Host "  正在启动后端服务 (端口 8080)..." -ForegroundColor Gray
@@ -98,7 +104,7 @@ while ($elapsed -lt $timeout) {
 
 # 启动前端
 Write-Host ""
-Write-Host "[5/5] 启动前端..." -ForegroundColor Yellow
+Write-Host "[5/6] 启动前端..." -ForegroundColor Yellow
 $frontendCmd = "cd /d `"$FRONTEND_DIR`" ; npm run dev"
 Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $frontendCmd -WindowStyle Hidden
 Write-Host "  正在启动前端服务 (端口 3000)..." -ForegroundColor Gray
@@ -116,6 +122,26 @@ while ($elapsed -lt $timeout) {
     }
 }
 
+# 启动小程序
+Write-Host ""
+Write-Host "[6/6] 启动小程序..." -ForegroundColor Yellow
+$miniappCmd = "cd /d `"$MINIAPP_DIR`" ; npm run dev:h5"
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $miniappCmd -WindowStyle Hidden
+Write-Host "  正在启动小程序服务 (端口 5173)..." -ForegroundColor Gray
+
+# 等待小程序启动
+Write-Host "  等待小程序启动..." -ForegroundColor Gray
+$elapsed = 0
+while ($elapsed -lt $timeout) {
+    Start-Sleep -Seconds 2
+    $elapsed += 2
+    $miniappConn = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
+    if ($miniappConn) {
+        Write-Host "  小程序已启动" -ForegroundColor Green
+        break
+    }
+}
+
 # 完成
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -124,11 +150,13 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  访问地址:" -ForegroundColor White
 Write-Host "  - PC 前端:    http://localhost:3000" -ForegroundColor White
+Write-Host "  - 小程序 H5:  http://localhost:5173" -ForegroundColor White
 Write-Host "  - 后端 API:   http://localhost:8080" -ForegroundColor White
 Write-Host "  - Swagger:    http://localhost:8080/swagger-ui.html" -ForegroundColor White
 Write-Host ""
 Write-Host "  小程序配置:" -ForegroundColor White
 Write-Host "  - API 地址:   http://${LOCAL_IP}:8080" -ForegroundColor Yellow
+Write-Host "  - 微信开发者工具请打开 dist/dev/mp-weixin 目录" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  测试账号:" -ForegroundColor White
 Write-Host "  - 管理员:     admin / admin123" -ForegroundColor White
