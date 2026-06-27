@@ -1,0 +1,65 @@
+{
+  "pages": [
+    { "path": "pages/index/index", "style": { "navigationBarTitleText": "秒杀商城", "enablePullDownRefresh": true } },
+    { "path": "pages/seckill/list", "style": { "navigationBarTitleText": "限时秒杀" } },
+    { "path": "pages/order/list", "style": { "navigationBarTitleText": "我的订单", "enablePullDownRefresh": true } },
+    { "path": "pages/my/index", "style": { "navigationBarTitleText": "个人中心" } },
+    { "path": "pages/login/login", "style": { "navigationBarTitleText": "登录" } },
+    { "path": "pages/register/register", "style": { "navigationBarTitleText": "注册" } },
+    { "path": "pages/goods/detail", "style": { "navigationBarTitleText": "商品详情" } },
+    { "path": "pages/goods/search", "style": { "navigationBarTitleText": "搜索商品", "navigationStyle": "custom" } },
+    { "path": "pages/seckill/detail", "style": { "navigationBarTitleText": "秒杀详情" } },
+    { "path": "pages/order/detail", "style": { "navigationBarTitleText": "订单详情" } },
+    { "path": "pages/cart/index", "style": { "navigationBarTitleText": "购物车" } },
+    { "path": "pages/favorites/index", "style": { "navigationBarTitleText": "我的收藏" } },
+    { "path": "pages/coupons/index", "style": { "navigationBarTitleText": "优惠券" } },
+    { "path": "pages/notifications/index", "style": { "navigationBarTitleText": "消息通知" } },
+    { "path": "pages/address/index", "style": { "navigationBarTitleText": "收货地址" } },
+    { "path": "pages/refund/index", "style": { "navigationBarTitleText": "退款申请" } },
+    { "path": "pages/ai/chat", "style": { "navigationBarTitleText": "AI助手", "navigationStyle": "custom" } },
+    { "path": "pages/settings/index", "style": { "navigationBarTitleText": "设置" } },
+    { "path": "pages-admin/dashboard/index", "style": { "navigationBarTitleText": "数据概览" } },
+    { "path": "pages-admin/goods/list", "style": { "navigationBarTitleText": "商品管理" } },
+    { "path": "pages-admin/seckill/list", "style": { "navigationBarTitleText": "秒杀管理" } },
+    { "path": "pages-admin/order/list", "style": { "navigationBarTitleText": "订单管理" } },
+    { "path": "pages-admin/user/list", "style": { "navigationBarTitleText": "用户管理" } }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "秒杀商城",
+    "navigationBarBackgroundColor": "#e4393c",
+    "backgroundColor": "#f5f5f5"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#e4393c",
+    "borderStyle": "white",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/tab/home.png",
+        "selectedIconPath": "static/tab/home-active.png"
+      },
+      {
+        "pagePath": "pages/seckill/list",
+        "text": "秒杀",
+        "iconPath": "static/tab/seckill.png",
+        "selectedIconPath": "static/tab/seckill-active.png"
+      },
+      {
+        "pagePath": "pages/order/list",
+        "text": "订单",
+        "iconPath": "static/tab/order.png",
+        "selectedIconPath": "static/tab/order-active.png"
+      },
+      {
+        "pagePath": "pages/my/index",
+        "text": "我的",
+        "iconPath": "static/tab/my.png",
+        "selectedIconPath": "static/tab/my-active.png"
+      }
+    ]
+  }
+}

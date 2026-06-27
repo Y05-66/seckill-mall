@@ -1,0 +1,83 @@
+# ==================== Java / Maven ====================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.mvn/
+mvnw
+mvnw.cmd
+
+# ==================== IDE ====================
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+*.swp
+*.swo
+*~
+
+# ==================== Node.js ====================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+
+# ==================== 前端构建产物 ====================
+seckill-frontend/dist/
+seckill-miniapp/dist/
+seckill-miniapp/unpackage/
+nginx/html/
+
+# ==================== 日志 ====================
+logs/
+*.log
+
+# ==================== 上传文件（用户头像等）====================
+uploads/*
+!uploads/.gitkeep
+
+# ==================== 环境配置（含敏感信息）====================
+# 包含真实密码和密钥的配置文件（使用 .example 模板）
+src/main/resources/application.yml
+seckill-miniapp/.env
+
+# ==================== Python ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+*.egg
+venv/
+.venv/
+
+# ==================== OS 文件 ====================
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# ==================== Claude Code ====================
+.claude/
+
+# ==================== 生成的文件 ====================
+out/
+*.pptx
+docs/generate_ppt.py
+docs/add_animations.py
+毕业论文_基金分析系统.md
+
+# ==================== 其他 ====================
+*.bak
+*.tmp
+*.temp
+.dockerignore
