@@ -3,15 +3,15 @@ setlocal enabledelayedexpansion
 
 echo.
 echo ========================================
-echo   秒杀商城 - 启动中...
+echo   Seckill Mall - Starting...
 echo ========================================
 echo.
 
-:: 获取项目根目录
+:: Get project root directory
 set "ROOT_DIR=%~dp0"
 
-:: ==================== 获取本机 IP ====================
-echo [1/5] 获取本机 IP...
+:: ==================== Get Local IP ====================
+echo [1/6] Detecting local IP...
 set "LOCAL_IP="
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /R "IPv4"') do (
     for /f "tokens=1" %%b in ("%%a") do (
@@ -24,134 +24,131 @@ for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /R "IPv4"') do (
     )
 )
 if not defined LOCAL_IP set "LOCAL_IP=localhost"
-echo       本机 IP: %LOCAL_IP%
+echo       Local IP: %LOCAL_IP%
 
-:: ==================== 更新小程序配置 ====================
+:: ==================== Update Miniapp Config ====================
 echo.
-echo [2/5] 更新小程序配置...
+echo [2/6] Updating miniapp config...
 
-:: 更新源码配置
+:: Update source config
 (
 echo export const API_HOST = 'http://%LOCAL_IP%:8080'
-echo export const APP_NAME = '秒杀商城'
+echo export const APP_NAME = 'SeckillMall'
 echo export const DEBUG = true
 ) > "%ROOT_DIR%seckill-miniapp\src\config.js"
 
-:: 同步更新 dist 编译输出（微信开发者工具读取的是 dist 目录）
+:: Sync dist config (WeChat devtools reads from dist)
 if exist "%ROOT_DIR%seckill-miniapp\dist\dev\mp-weixin\config.js" (
     (
     echo "use strict";
     echo const API_HOST = "http://%LOCAL_IP%:8080";
     echo exports.API_HOST = API_HOST;
     ) > "%ROOT_DIR%seckill-miniapp\dist\dev\mp-weixin\config.js"
-    echo       已同步 dist 目录配置
+    echo       Synced dist config
 )
 
-echo       小程序 API: http://%LOCAL_IP%:8080
+echo       Miniapp API: http://%LOCAL_IP%:8080
 
-:: ==================== 检查端口 ====================
+:: ==================== Check Ports ====================
 echo.
-echo [3/6] 检查端口...
+echo [3/6] Checking ports...
 netstat -ano | findstr ":8080.*LISTEN" >nul 2>&1
 if not errorlevel 1 (
-    echo       [错误] 端口 8080 已被占用，请先运行 stop.bat
+    echo       [ERROR] Port 8080 is in use. Run stop.bat first.
     pause
     exit /b 1
 )
 netstat -ano | findstr ":3000.*LISTEN" >nul 2>&1
 if not errorlevel 1 (
-    echo       [错误] 端口 3000 已被占用，请先运行 stop.bat
+    echo       [ERROR] Port 3000 is in use. Run stop.bat first.
     pause
     exit /b 1
 )
 netstat -ano | findstr ":5173.*LISTEN" >nul 2>&1
 if not errorlevel 1 (
-    echo       [错误] 端口 5173 已被占用，请先运行 stop.bat
+    echo       [ERROR] Port 5173 is in use. Run stop.bat first.
     pause
     exit /b 1
 )
-echo       端口检查通过
+echo       Port check passed
 
-:: ==================== 启动后端 ====================
+:: ==================== Start Backend ====================
 echo.
-echo [4/6] 启动后端...
+echo [4/6] Starting backend...
 cd /d "%ROOT_DIR%"
 
-:: 检查 jar 文件是否存在
 if not exist "target\seckill-mall-1.0.0.jar" (
-    echo       [错误] 未找到 target\seckill-mall-1.0.0.jar
-    echo       请先运行 mvn clean package -DskipTests
+    echo       [ERROR] target\seckill-mall-1.0.0.jar not found
+    echo       Please run: mvn clean package -DskipTests
     pause
     exit /b 1
 )
 
-:: 使用 start 命令启动后端（后台运行）
-echo       正在启动后端服务 (端口 8080)...
-start "秒杀商城-后端" /min cmd /c "cd /d "%ROOT_DIR%" && java -jar target\seckill-mall-1.0.0.jar"
+echo       Starting backend on port 8080...
+:: Find javaw in the same directory as java
+for /f "tokens=*" %%i in ('where java') do set "JAVA_DIR=%%~dpi"
+set "JAVAW=%JAVA_DIR%javaw.exe"
+if not exist "%JAVAW%" set "JAVAW=javaw"
+powershell -Command "Start-Process -FilePath '%JAVAW%' -ArgumentList '-jar','target\seckill-mall-1.0.0.jar' -WorkingDirectory '%ROOT_DIR%' -WindowStyle Hidden"
 
-:: 等待后端启动
-echo       等待后端启动...
+echo       Waiting for backend...
 :wait_backend
 timeout /t 2 /nobreak >nul
 netstat -ano | findstr ":8080.*LISTEN" >nul 2>&1
 if errorlevel 1 goto wait_backend
-echo       后端已启动
+echo       Backend started
 
-:: ==================== 启动前端 ====================
+:: ==================== Start PC Frontend ====================
 echo.
-echo [5/6] 启动前端...
+echo [5/6] Starting PC frontend...
 cd /d "%ROOT_DIR%seckill-frontend"
 
-:: 使用 start 命令启动前端（后台运行）
-echo       正在启动前端服务 (端口 3000)...
-start "秒杀商城-前端" /min cmd /c "cd /d "%ROOT_DIR%seckill-frontend" && npm run dev"
+echo       Starting frontend on port 3000...
+powershell -Command "Start-Process -FilePath 'cmd' -ArgumentList '/c','npm run dev' -WorkingDirectory '%ROOT_DIR%seckill-frontend' -WindowStyle Hidden"
 
-:: 等待前端启动
-echo       等待前端启动...
+echo       Waiting for frontend...
 :wait_frontend
 timeout /t 2 /nobreak >nul
 netstat -ano | findstr ":3000.*LISTEN" >nul 2>&1
 if errorlevel 1 goto wait_frontend
-echo       前端已启动
+echo       Frontend started
 
-:: ==================== 启动小程序 ====================
+:: ==================== Start Miniapp ====================
 echo.
-echo [6/6] 启动小程序...
+echo [6/6] Starting miniapp...
 cd /d "%ROOT_DIR%seckill-miniapp"
 
-:: 使用 start 命令启动小程序H5开发服务器（后台运行）
-echo       正在启动小程序服务 (端口 5173)...
-start "秒杀商城-小程序" /min cmd /c "cd /d "%ROOT_DIR%seckill-miniapp" && npm run dev:h5"
+echo       Starting miniapp on port 5173...
+powershell -Command "Start-Process -FilePath 'cmd' -ArgumentList '/c','npm run dev:h5' -WorkingDirectory '%ROOT_DIR%seckill-miniapp' -WindowStyle Hidden"
 
-:: 等待小程序启动
-echo       等待小程序启动...
+echo       Waiting for miniapp...
 :wait_miniapp
 timeout /t 2 /nobreak >nul
 netstat -ano | findstr ":5173.*LISTEN" >nul 2>&1
 if errorlevel 1 goto wait_miniapp
-echo       小程序已启动
+echo       Miniapp started
 
-:: ==================== 完成 ====================
+:: ==================== Done ====================
 echo.
 echo ========================================
-echo   启动完成！
+echo   All services started!
 echo ========================================
 echo.
-echo   访问地址:
-echo   - PC 前端:    http://localhost:3000
-echo   - 小程序 H5:  http://localhost:5173
-echo   - 后端 API:   http://localhost:8080
-echo   - Swagger:    http://localhost:8080/swagger-ui.html
+echo   Access URLs:
+echo   - PC Frontend:  http://localhost:3000
+echo   - Miniapp H5:   http://localhost:5173
+echo   - Backend API:  http://localhost:8080
+echo   - Swagger:      http://localhost:8080/swagger-ui.html
 echo.
-echo   小程序配置:
-echo   - API 地址:   http://%LOCAL_IP%:8080
-echo   - 微信开发者工具请打开 dist/dev/mp-weixin 目录
+echo   Miniapp Config:
+echo   - API Host:     http://%LOCAL_IP%:8080
+echo   - WeChat DevTools: open dist/dev/mp-weixin
 echo.
-echo   测试账号:
-echo   - 管理员:     admin / admin123
-echo   - 普通用户:   user1 / 123456
+echo   Test Accounts:
+echo   - Admin:  admin / admin123
+echo   - User:   user1 / 123456
 echo.
-echo   运行 stop.bat 可停止所有服务
+echo   Run stop.bat to stop all services
 echo.
 echo ========================================
 echo.

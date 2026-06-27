@@ -3,43 +3,43 @@ setlocal enabledelayedexpansion
 
 echo.
 echo ========================================
-echo   秒杀商城 - 停止中...
+echo   Seckill Mall - Stopping...
 echo ========================================
 echo.
 
-:: 停止后端
-echo [1/2] 停止后端服务...
+:: Stop backend
+echo [1/3] Stopping backend...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8080" ^| findstr "LISTENING"') do (
     set "PID=%%a"
     if not "!PID!"=="" (
         taskkill /F /PID !PID! >nul 2>&1
-        echo       已停止后端 (PID: !PID!)
+        echo       Backend stopped (PID: !PID!)
     )
 )
 
-:: 停止前端
-echo [2/2] 停止前端服务...
+:: Stop frontend
+echo [2/3] Stopping frontend...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":3000" ^| findstr "LISTENING"') do (
     set "PID=%%a"
     if not "!PID!"=="" (
         taskkill /F /PID !PID! >nul 2>&1
-        echo       已停止前端 (PID: !PID!)
+        echo       Frontend stopped (PID: !PID!)
     )
 )
 
-:: 停止小程序开发服务器
-echo [3/3] 停止小程序开发服务器...
+:: Stop miniapp
+echo [3/3] Stopping miniapp...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5173" ^| findstr "LISTENING"') do (
     set "PID=%%a"
     if not "!PID!"=="" (
         taskkill /F /PID !PID! >nul 2>&1
-        echo       已停止小程序 (PID: !PID!)
+        echo       Miniapp stopped (PID: !PID!)
     )
 )
 
 echo.
 echo ========================================
-echo   所有服务已停止
+echo   All services stopped
 echo ========================================
 echo.
 pause

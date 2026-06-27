@@ -1,4 +1,4 @@
-# 秒杀商城 - 启动脚本 (PowerShell)
+# Seckill Mall - Start Script (PowerShell)
 
 $ROOT_DIR = $PSScriptRoot
 $FRONTEND_DIR = Join-Path $ROOT_DIR "seckill-frontend"
@@ -6,12 +6,12 @@ $MINIAPP_DIR = Join-Path $ROOT_DIR "seckill-miniapp"
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  秒杀商城 - 启动中..." -ForegroundColor Cyan
+Write-Host "  Seckill Mall - Starting..." -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 获取本机 IP
-Write-Host "[1/5] 获取本机 IP..." -ForegroundColor Yellow
+# Get local IP
+Write-Host "[1/6] Detecting local IP..." -ForegroundColor Yellow
 $LOCAL_IP = "localhost"
 $adapters = Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
     $_.IPAddress -notmatch "^127\." -and
@@ -31,20 +31,20 @@ foreach ($adapter in $adapters) {
     }
 }
 
-Write-Host "  本机 IP: $LOCAL_IP" -ForegroundColor Green
+Write-Host "  Local IP: $LOCAL_IP" -ForegroundColor Green
 
-# 更新小程序配置
+# Update miniapp config
 Write-Host ""
-Write-Host "[2/5] 更新小程序配置..." -ForegroundColor Yellow
+Write-Host "[2/6] Updating miniapp config..." -ForegroundColor Yellow
 $configContent = @"
 export const API_HOST = 'http://${LOCAL_IP}:8080'
-export const APP_NAME = '秒杀商城'
+export const APP_NAME = 'SeckillMall'
 export const DEBUG = true
 "@
 $configPath = Join-Path $MINIAPP_DIR "src\config.js"
 Set-Content -Path $configPath -Value $configContent -Encoding UTF8
 
-# 同步更新 dist 编译输出（微信开发者工具读取的是 dist 目录）
+# Sync dist config
 $distConfigPath = Join-Path $MINIAPP_DIR "dist\dev\mp-weixin\config.js"
 if (Test-Path $distConfigPath) {
     $distConfigContent = @"
@@ -53,43 +53,45 @@ const API_HOST = "http://${LOCAL_IP}:8080";
 exports.API_HOST = API_HOST;
 "@
     Set-Content -Path $distConfigPath -Value $distConfigContent -Encoding UTF8
-    Write-Host "  已同步 dist 目录配置" -ForegroundColor Gray
+    Write-Host "  Synced dist config" -ForegroundColor Gray
 }
-Write-Host "  小程序 API: http://${LOCAL_IP}:8080" -ForegroundColor Green
+Write-Host "  Miniapp API: http://${LOCAL_IP}:8080" -ForegroundColor Green
 
-# 检查端口
+# Check ports
 Write-Host ""
-Write-Host "[3/6] 检查端口..." -ForegroundColor Yellow
-$backendPort = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue
-$frontendPort = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
-$miniappPort = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
+Write-Host "[3/6] Checking ports..." -ForegroundColor Yellow
+$ports = @(8080, 3000, 5173)
+$portOk = $true
+foreach ($port in $ports) {
+    $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    if ($conn) {
+        Write-Host "  [ERROR] Port $port is in use" -ForegroundColor Red
+        $portOk = $false
+    }
+}
+if (-not $portOk) {
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+Write-Host "  Port check passed" -ForegroundColor Green
 
-if ($backendPort) {
-    Write-Host "  [错误] 端口 8080 已被占用" -ForegroundColor Red
-    Read-Host "按回车键退出"
-    exit 1
-}
-if ($frontendPort) {
-    Write-Host "  [错误] 端口 3000 已被占用" -ForegroundColor Red
-    Read-Host "按回车键退出"
-    exit 1
-}
-if ($miniappPort) {
-    Write-Host "  [错误] 端口 5173 已被占用" -ForegroundColor Red
-    Read-Host "按回车键退出"
-    exit 1
-}
-Write-Host "  端口检查通过" -ForegroundColor Green
-
-# 启动后端
+# Start backend
 Write-Host ""
-Write-Host "[4/6] 启动后端..." -ForegroundColor Yellow
-$backendCmd = "cd /d `"$ROOT_DIR`" ; java -jar target\seckill-mall-1.0.0.jar"
-Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $backendCmd -WindowStyle Hidden
-Write-Host "  正在启动后端服务 (端口 8080)..." -ForegroundColor Gray
+Write-Host "[4/6] Starting backend..." -ForegroundColor Yellow
+$jarPath = Join-Path $ROOT_DIR "target\seckill-mall-1.0.0.jar"
+if (-not (Test-Path $jarPath)) {
+    Write-Host "  [ERROR] target\seckill-mall-1.0.0.jar not found" -ForegroundColor Red
+    Write-Host "  Please run: mvn clean package -DskipTests" -ForegroundColor Red
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+# Find javaw in the same directory as java
+$javaPath = (Get-Command java -ErrorAction SilentlyContinue).Source
+$javawPath = if ($javaPath) { Join-Path (Split-Path $javaPath) "javaw.exe" } else { "javaw" }
+if (-not (Test-Path $javawPath)) { $javawPath = "javaw" }
+Start-Process -FilePath $javawPath -ArgumentList "-jar","target\seckill-mall-1.0.0.jar" -WorkingDirectory $ROOT_DIR -WindowStyle Hidden
+Write-Host "  Starting backend on port 8080..." -ForegroundColor Gray
 
-# 等待后端启动
-Write-Host "  等待后端启动..." -ForegroundColor Gray
 $timeout = 60
 $elapsed = 0
 while ($elapsed -lt $timeout) {
@@ -97,71 +99,67 @@ while ($elapsed -lt $timeout) {
     $elapsed += 2
     $backendConn = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue
     if ($backendConn) {
-        Write-Host "  后端已启动" -ForegroundColor Green
+        Write-Host "  Backend started" -ForegroundColor Green
         break
     }
 }
 
-# 启动前端
+# Start frontend
 Write-Host ""
-Write-Host "[5/6] 启动前端..." -ForegroundColor Yellow
+Write-Host "[5/6] Starting frontend..." -ForegroundColor Yellow
 $frontendCmd = "cd /d `"$FRONTEND_DIR`" ; npm run dev"
 Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $frontendCmd -WindowStyle Hidden
-Write-Host "  正在启动前端服务 (端口 3000)..." -ForegroundColor Gray
+Write-Host "  Starting frontend on port 3000..." -ForegroundColor Gray
 
-# 等待前端启动
-Write-Host "  等待前端启动..." -ForegroundColor Gray
 $elapsed = 0
 while ($elapsed -lt $timeout) {
     Start-Sleep -Seconds 2
     $elapsed += 2
     $frontendConn = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
     if ($frontendConn) {
-        Write-Host "  前端已启动" -ForegroundColor Green
+        Write-Host "  Frontend started" -ForegroundColor Green
         break
     }
 }
 
-# 启动小程序
+# Start miniapp
 Write-Host ""
-Write-Host "[6/6] 启动小程序..." -ForegroundColor Yellow
+Write-Host "[6/6] Starting miniapp..." -ForegroundColor Yellow
 $miniappCmd = "cd /d `"$MINIAPP_DIR`" ; npm run dev:h5"
 Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $miniappCmd -WindowStyle Hidden
-Write-Host "  正在启动小程序服务 (端口 5173)..." -ForegroundColor Gray
+Write-Host "  Starting miniapp on port 5173..." -ForegroundColor Gray
 
-# 等待小程序启动
-Write-Host "  等待小程序启动..." -ForegroundColor Gray
 $elapsed = 0
 while ($elapsed -lt $timeout) {
     Start-Sleep -Seconds 2
     $elapsed += 2
     $miniappConn = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
     if ($miniappConn) {
-        Write-Host "  小程序已启动" -ForegroundColor Green
+        Write-Host "  Miniapp started" -ForegroundColor Green
         break
     }
 }
 
-# 完成
+# Done
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  启动完成！" -ForegroundColor Green
+Write-Host "  All services started!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  访问地址:" -ForegroundColor White
-Write-Host "  - PC 前端:    http://localhost:3000" -ForegroundColor White
-Write-Host "  - 小程序 H5:  http://localhost:5173" -ForegroundColor White
-Write-Host "  - 后端 API:   http://localhost:8080" -ForegroundColor White
-Write-Host "  - Swagger:    http://localhost:8080/swagger-ui.html" -ForegroundColor White
+Write-Host "  Access URLs:" -ForegroundColor White
+Write-Host "  - PC Frontend:  http://localhost:3000" -ForegroundColor White
+Write-Host "  - Miniapp H5:   http://localhost:5173" -ForegroundColor White
+Write-Host "  - Backend API:  http://localhost:8080" -ForegroundColor White
+Write-Host "  - Swagger:      http://localhost:8080/swagger-ui.html" -ForegroundColor White
 Write-Host ""
-Write-Host "  小程序配置:" -ForegroundColor White
-Write-Host "  - API 地址:   http://${LOCAL_IP}:8080" -ForegroundColor Yellow
-Write-Host "  - 微信开发者工具请打开 dist/dev/mp-weixin 目录" -ForegroundColor Gray
+Write-Host "  Miniapp Config:" -ForegroundColor White
+Write-Host "  - API Host:     http://${LOCAL_IP}:8080" -ForegroundColor Yellow
+Write-Host "  - WeChat DevTools: open dist/dev/mp-weixin" -ForegroundColor Gray
 Write-Host ""
-Write-Host "  测试账号:" -ForegroundColor White
-Write-Host "  - 管理员:     admin / admin123" -ForegroundColor White
-Write-Host "  - 普通用户:   user1 / 123456" -ForegroundColor White
+Write-Host "  Test Accounts:" -ForegroundColor White
+Write-Host "  - Admin:  admin / admin123" -ForegroundColor White
+Write-Host "  - User:   user1 / 123456" -ForegroundColor White
 Write-Host ""
-Write-Host "  运行 stop.bat 可停止所有服务" -ForegroundColor Gray
+Write-Host "  Run stop.ps1 to stop all services" -ForegroundColor Gray
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
